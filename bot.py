@@ -1,4 +1,6 @@
 import logging
+from typing import Any
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
@@ -11,8 +13,6 @@ from datetime import datetime, timedelta
 import os
 import json
 from dotenv import load_dotenv
-from itertools import zip_longest
-from textwrap import fill
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.types import CallbackQuery
 
@@ -31,7 +31,6 @@ API_TOKEN = os.getenv('BOT_TOKEN')
 
 # Проверка наличия токена
 if not API_TOKEN:
-    logger.error("Не найден BOT_TOKEN в переменных окружения или .env файле")
     raise ValueError("Токен бота не указан. Добавьте BOT_TOKEN в .env файл")
 
 # Инициализация бота
@@ -375,11 +374,7 @@ async def send_teachers(message: Message):
     
     await message.reply("👨‍🏫 Выберите преподавателя:", reply_markup=keyboard)
 
-# Глобальный словарь для хранения состояния (временное решение)
-user_state = {}
-
-# Глобальный словарь для хранения состояния
-# Глобальный словарь для хранения состояния
+# Глобальный словарь для хранения состояния пользователя
 user_state = {}
 
 @dp.callback_query(lambda c: c.data == "select_day")
