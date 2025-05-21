@@ -37,7 +37,6 @@ if not API_TOKEN:
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
-# Далее идет ваш основной код...
 # Глобальный словарь для хранения данных пользователей
 user_data = {}
 
@@ -201,6 +200,7 @@ async def send_welcome(message: Message):
     # Создаем клавиатуру с тремя кнопками
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🆘 Помощь", callback_data="help_command")],
+        [InlineKeyboardButton(text="🔄 Обновить расписание", callback_data="refresh_cache")],  # Новая кнопка
         [InlineKeyboardButton(text="📅 Выберите день", callback_data="select_day")],
         [InlineKeyboardButton(text="🏫 Список групп", callback_data="groups_list")],
         [InlineKeyboardButton(text="👨‍🏫 Список преподавателей", callback_data="teachers_list")]
@@ -210,6 +210,16 @@ async def send_welcome(message: Message):
         "Привет! Я бот для расписания. Выбери действие:",
         reply_markup=keyboard
     )
+
+@dp.callback_query(lambda c: c.data == "refresh_cache")
+async def refresh_cache_handler(callback: CallbackQuery):
+    global schedule_cache
+    schedule_cache = {}  # Очищаем кэш
+    logger.info(f"Кэш расписания очищен по запросу пользователя {callback.from_user.id}")
+    await callback.answer("✅ Расписание обновлено", show_alert=True)
+    
+    # Возвращаем пользователя в главное меню
+    await send_welcome(callback.message)
 
 # Команда /schedule
 @dp.message(Command("schedule"))
@@ -723,7 +733,6 @@ async def process_callback(callback: types.CallbackQuery):
         logger.error(f"Ошибка в обработчике callback: {e}")
         await callback.answer("Произошла ошибка. Попробуйте снова.", show_alert=True)
 
-
 # Добавим в существующий код (после других команд)
 
 @dp.message(Command("day"))
@@ -820,10 +829,26 @@ async def day_schedule(message: Message):
 async def handle_unknown_command(message: Message):
     await message.reply("Неизвестная команда. Используй /help для списка команд.")
 
+async def clear_cache_daily():
+    global schedule_cache
+    schedule_cache = {}
+    logger.info("Автоматическая очистка кэша расписания")
+
 # Запуск бота
 async def main():
+    # Запуск фоновой задачи очистки кэша
+    asyncio.create_task(clear_cache_periodically())
+    
     logger.info("Бот запущен.")
     await dp.start_polling(bot)
+
+async def clear_cache_periodically():
+    """Очищает кэш каждые 24 часа"""
+    while True:
+        await asyncio.sleep(60)  # 24 часа
+        global schedule_cache
+        schedule_cache = {}
+        logger.info("Автоматическая очистка кэша расписания")
 
 if __name__ == '__main__':
     asyncio.run(main())
